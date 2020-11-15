@@ -21,8 +21,8 @@ from models import Yolov4
 # from tool.darknet2pytorch import Darknet
 
 from loss import Yolo_loss
-from util import collate_fn as val_collate
-from util import collate
+from utils.utils import collate_fn as val_collate
+from utils.utils import collate
 
 
 def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=20, img_scale=0.5):
