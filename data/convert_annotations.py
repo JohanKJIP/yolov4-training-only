@@ -1,6 +1,7 @@
 import os
 import shutil
 import cv2
+import random
 
 
 def collect_and_rename() -> None:
@@ -9,11 +10,9 @@ def collect_and_rename() -> None:
     label_source_folder = 'annotation_dir'
     image_target_folder = 'images'
     label_target_folder = 'labels'
-    count = -1
-    for subdir, _, files in os.walk(image_source_folder):
-        # it walks the parent folder first
+    for i, (subdir, _, files) in enumerate(os.walk(image_source_folder), -1):
+        # it walks the parent folder first, not a file
         if count == -1: 
-            count += 1
             continue
         subdir_name = subdir.split('\\')[1]
         for file_name in files:
@@ -21,8 +20,7 @@ def collect_and_rename() -> None:
                 open(f'{label_source_folder}/{subdir_name}/{file_name}'.split('.')[0] + '.txt') as label_file:
                 shutil.copy2(image_file.name, f'{image_target_folder}/{"%06d" % count}.jpg')
                 shutil.copy2(label_file.name, f'{label_target_folder}/{"%06d" % count}.txt')
-            count += 1
-            print(f'Processed {count} images')
+            print(f'Processed {i} images')
 
 
 def convert_labels() -> None:
@@ -31,17 +29,20 @@ def convert_labels() -> None:
     validation_split = 0.10
 
     # Convert annotations and split into validation and train set
-    number_images = len(os.listdir(data_folder)) / 2
+    number_images = int(len(os.listdir(data_folder)) / 2)
     train_size = int(number_images * (1 - validation_split))
     val_size = number_images - train_size
 
     print(f'Training dataset size: {train_size}')
     print(f'Validation dataset size: {val_size}')
 
-    count = 0
     with open('train.txt', 'w') as train_file, open('val.txt', 'w') as val_file:
-        for file_name in os.listdir(data_folder):
+        files = os.listdir(data_folder)
+        # shuffle otherwise validation is from the same session
+        random.shuffle(files)
+        for processed, file_name in enumerate(files):
             if file_name.split('.')[1] == 'jpg':
+                # if image has no labels
                 write = False
                 if count < train_size:
                     file_to_write = train_file
@@ -76,8 +77,7 @@ def convert_labels() -> None:
                             file_to_write.write(label)
                 if write:
                     file_to_write.write('\n') 
-                print(f'[{count}/{number_images}] Processed {file_name}')
-                count += 1
+                print(f'[{processed}/{number_images}] Processed {file_name}')
 
 if __name__ == "__main__":
     convert_labels()
