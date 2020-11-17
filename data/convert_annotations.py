@@ -12,14 +12,14 @@ def collect_and_rename() -> None:
     label_target_folder = 'labels'
     for i, (subdir, _, files) in enumerate(os.walk(image_source_folder), -1):
         # it walks the parent folder first, not a file
-        if count == -1: 
+        if i == -1: 
             continue
         subdir_name = subdir.split('\\')[1]
         for file_name in files:
             with open(f'{image_source_folder}/{subdir_name}/{file_name}') as image_file, \
                 open(f'{label_source_folder}/{subdir_name}/{file_name}'.split('.')[0] + '.txt') as label_file:
-                shutil.copy2(image_file.name, f'{image_target_folder}/{"%06d" % count}.jpg')
-                shutil.copy2(label_file.name, f'{label_target_folder}/{"%06d" % count}.txt')
+                shutil.copy2(image_file.name, f'{image_target_folder}/{"%06d" % i}.jpg')
+                shutil.copy2(label_file.name, f'{label_target_folder}/{"%06d" % i}.txt')
             print(f'Processed {i} images')
 
 
@@ -38,13 +38,15 @@ def convert_labels() -> None:
 
     with open('train.txt', 'w') as train_file, open('val.txt', 'w') as val_file:
         files = os.listdir(data_folder)
+        print(len(files))
         # shuffle otherwise validation is from the same session
         random.shuffle(files)
-        for processed, file_name in enumerate(files):
+        processed = 0
+        for file_name in files:
             if file_name.split('.')[1] == 'jpg':
                 # if image has no labels
                 write = False
-                if count < train_size:
+                if processed < train_size:
                     file_to_write = train_file
                 else:
                     file_to_write = val_file
@@ -77,6 +79,7 @@ def convert_labels() -> None:
                             file_to_write.write(label)
                 if write:
                     file_to_write.write('\n') 
+                processed += 1
                 print(f'[{processed}/{number_images}] Processed {file_name}')
 
 if __name__ == "__main__":
