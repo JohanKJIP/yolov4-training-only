@@ -21,7 +21,7 @@ from utils.utils import collate_fn as val_collate
 from utils.utils import collate
 
 
-def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=20, img_scale=0.5):
+def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=20, img_scale=0.5, freeze_backbone=False):
     """ Train the YOLOv4 network with given configurations """
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
     val_dataset = Yolo_dataset(config.val_label, config, train=False)
@@ -89,6 +89,12 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
     for epoch in range(epochs):
         epoch_loss = 0
         epoch_step = 0
+
+        # Freeze backbone first epoch
+        if freeze_backbone and epoch < 2:
+            for name, p in model.named_parameters():
+                if not 'head' in name.split('.')[0]:  # if layer < 137
+                    p.requires_grad = False if (epoch == 0) else True
 
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img', ncols=200) as progress_bar:
             for batch in train_loader:
@@ -234,6 +240,7 @@ if __name__ == "__main__":
     logging.info(f'Using device {device}')
 
     model = Yolov4(cfg.pretrained, n_classes=cfg.classes)
+    freeze_backbone = cfg.pretrained is not None
 
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
@@ -243,7 +250,8 @@ if __name__ == "__main__":
         train(model=model,
               config=cfg,
               epochs=cfg.TRAIN_EPOCHS,
-              device=device, )
+              device=device,
+              freeze_backbone=freeze_backbone)
     except KeyboardInterrupt:
         torch.save(model.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
