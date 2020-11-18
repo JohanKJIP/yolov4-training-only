@@ -93,7 +93,8 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
         # Freeze backbone first epoch
         if freeze_backbone and epoch < 2:
             for name, p in model.named_parameters():
-                if not 'head' in name.split('.')[0]:  # if layer < 137
+                # Freeze everything but the head
+                if not 'head' in name.split('.')[0]: 
                     p.requires_grad = False if (epoch == 0) else True
 
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img', ncols=200) as progress_bar:
